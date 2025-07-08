@@ -1,0 +1,10 @@
+steps:
+  # Krok 1: Instalacja zależności
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['install']
+  # Krok 2: Budowanie aplikacji produkcyjnej
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['run', 'build']
+  # Krok 3: Wdrożenie na Firebase Hosting
+  - name: 'gcr.io/cloud-builders/firebase'
+    args: ['deploy', '--project', '$PROJECT_ID', '--only', 'hosting']
