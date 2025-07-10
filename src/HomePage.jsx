@@ -1,10 +1,7 @@
 // HomePage.jsx
 import React, { useState, useEffect } from 'react';
-import InstallerCard from './InstallerCard.jsx'; // Upewnij się, że importujesz poprawny komponent
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://pv-service-backend-1095388661827.europe-central2.run.app' 
-  : 'http://localhost:3000';
+import InstallerCard from './InstallerCard.jsx';
+import API_URL from './apiConfig.js'; // Import adresu API z pliku konfiguracyjnego
 
 function HomePage() {
   const [profiles, setProfiles] = useState([]);
@@ -14,6 +11,7 @@ function HomePage() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
+        // Używamy zaimportowanego API_URL do zbudowania pełnego adresu zapytania
         const response = await fetch(`${API_URL}/api/profiles`);
         if (!response.ok) {
           throw new Error('Nie udało się pobrać danych.');
