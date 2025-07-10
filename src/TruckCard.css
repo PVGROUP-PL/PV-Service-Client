@@ -1,0 +1,27 @@
+/* src/TruckCard.css */
+
+.truck-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.truck-card h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.truck-card p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.truck-card strong {
+  color: #444;
+}
