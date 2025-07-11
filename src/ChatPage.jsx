@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import io from 'socket.io-client';
+import { API_URL, SOCKET_URL } from './apiConfig.js'; // Poprawiony import
 
-// Ustawiamy adres URL naszego API
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://bookthefoodtruck-api.onrender.com' 
-  : 'http://localhost:3000';
-
-// Tworzymy instancję gniazda, ale jeszcze się nie łączymy
-const socket = io(API_URL, { 
+// Używamy bezpośredniego adresu URL dla Socket.IO
+const socket = io(SOCKET_URL, { 
     autoConnect: false,
-    reconnection: true, // Pozwalamy na automatyczne ponowne połączenie
+    reconnection: true,
     reconnectionAttempts: 5
 });
 
@@ -21,7 +17,6 @@ function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Pobieramy dane zalogowanego użytkownika i token
   const user = JSON.parse(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
   
@@ -38,17 +33,14 @@ function ChatPage() {
         return;
     }
 
-    // Łączymy się z serwerem ręcznie
     socket.connect();
 
-    // Po nawiązaniu połączenia dołączamy do pokoju
     socket.on('connect', () => {
         console.log(`Połączono z serwerem socket.io, id: ${socket.id}`);
         socket.emit('join_room', conversationId);
         console.log(`Wysłano żądanie dołączenia do pokoju: ${conversationId}`);
     });
 
-    // Pobieramy historię wiadomości
     const fetchMessages = async () => {
       setLoading(true);
       try {
@@ -71,19 +63,16 @@ function ChatPage() {
     };
     fetchMessages();
 
-    // Nasłuchujemy na nowe wiadomości
     const handleReceiveMessage = (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     };
     socket.on('receive_message', handleReceiveMessage);
 
-    // Nasłuchujemy na błędy połączenia
     socket.on('connect_error', (err) => {
         console.error('Błąd połączenia z Socket.IO:', err);
         setError('Nie można połączyć się z serwerem czatu.');
     });
 
-    // Funkcja "sprzątająca"
     return () => {
       console.log("Sprzątanie komponentu czatu. Rozłączanie...");
       socket.off('connect');
@@ -91,7 +80,7 @@ function ChatPage() {
       socket.off('connect_error');
       socket.disconnect();
     };
-  }, [conversationId, token, user?.userId]); // POPRAWKA: Zależność od `user.userId` zamiast całego obiektu `user`
+  }, [conversationId, token, user?.userId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -132,7 +121,7 @@ function ChatPage() {
           display: 'flex',
           flexDirection: 'column'
       }}>
-        {messages.length > 0 ? messages.map((msg, index) => ( // dodano index jako fallback dla klucza
+        {messages.length > 0 ? messages.map((msg, index) => (
           <div key={msg.message_id || index} style={{ 
               alignSelf: msg.sender_id === user.userId ? 'flex-end' : 'flex-start',
               maxWidth: '70%',

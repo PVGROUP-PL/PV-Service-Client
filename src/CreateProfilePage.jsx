@@ -1,20 +1,15 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext.jsx';
+import API_URL from './apiConfig.js'; // Poprawiony import
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://bookthefoodtruck-api.onrender.com'
-  : 'http://localhost:3000';
-
-// Definicje opcji do wyboru w formularzu
-const INVERTER_BRANDS = ["Growatt", "Afore", "Solis", "Sofar Solar", "FoxESS", "Solplanet", "Fronius", "SMA", "Goodwe", "Inne"];
+const INVERTER_BRANDS = ["Growatt", "Afore", "Solis", "Sofar Solar", "FoxESS", "Solplanet", "Fronius", "SMA", "Goodwe", "SolarEdge", "Enphase", "Kostal", "Sungrow", "Victron Energy", "Inne"];
 const SERVICE_TYPES = ["Serwis i diagnostyka", "Montaż nowych instalacji", "Przeglądy okresowe", "Modernizacja instalacji"];
 
 function CreateProfilePage() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Stany dla wszystkich pól formularza
   const [serviceName, setServiceName] = useState('');
   const [description, setDescription] = useState('');
   const [postalCode, setPostalCode] = useState('');
@@ -29,7 +24,6 @@ function CreateProfilePage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Funkcja do obsługi checkboxów (wybór wielokrotny)
   const handleCheckboxChange = (e, state, setState) => {
     const { value, checked } = e.target;
     if (checked) {
@@ -44,7 +38,6 @@ function CreateProfilePage() {
     setLoading(true);
     setMessage('');
 
-    // Tworzymy obiekt FormData, ponieważ wysyłamy pliki
     const formData = new FormData();
     formData.append('service_name', serviceName);
     formData.append('service_description', description);
@@ -54,11 +47,11 @@ function CreateProfilePage() {
     formData.append('website_url', website);
     formData.append('certifications', certifications);
     
-    // Dodajemy tablice jako listy stringów
+    // Konwertujemy tablice do formatu, który backend zrozumie (np. JSON string)
+    // Backend będzie musiał to sparsować.
     formData.append('serviced_inverter_brands', JSON.stringify(servicedBrands));
     formData.append('service_types', JSON.stringify(serviceTypes));
 
-    // Dodajemy wszystkie wybrane zdjęcia
     if (photos) {
       for (let i = 0; i < photos.length; i++) {
         formData.append('reference_photos', photos[i]);
@@ -70,7 +63,6 @@ function CreateProfilePage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-          // WAŻNE: Nie ustawiamy 'Content-Type', przeglądarka zrobi to sama dla FormData
         },
         body: formData,
       });
@@ -90,7 +82,6 @@ function CreateProfilePage() {
     }
   };
   
-  // Proste style dla czytelności
   const styles = {
     form: { display: 'flex', flexDirection: 'column', gap: '15px' },
     input: { width: '100%', padding: '8px', boxSizing: 'border-box' },

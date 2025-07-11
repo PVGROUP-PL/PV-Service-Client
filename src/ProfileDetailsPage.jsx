@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from './AuthContext.jsx'; 
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://bookthefoodtruck-api.onrender.com' 
-  : 'http://localhost:3000';
+import API_URL from './apiConfig.js'; // Poprawiony import
 
 const StarRatingDisplay = ({ rating }) => {
     const totalStars = 5;
@@ -43,6 +40,7 @@ function ProfileDetailsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Używamy poprawnego API_URL
         const [profileRes, reviewsRes] = await Promise.all([
           fetch(`${API_URL}/api/profiles/${profileId}`),
           fetch(`${API_URL}/api/reviews/profile/${profileId}`)
@@ -176,7 +174,17 @@ function ProfileDetailsPage() {
       {user && (user.user_type === 'client') ? (
         <div>
             <h2>Wyślij zapytanie o usługę</h2>
-            <form onSubmit={handleRequestSubmit}>{/* ... formularz bez zmian ... */}</form>
+            <form onSubmit={handleRequestSubmit}>
+                 <div>
+                    <label>Preferowana data usługi:</label>
+                    <input type="date" value={preferred_date} onChange={e => setPreferredDate(e.target.value)} required />
+                </div>
+                <div>
+                    <label>Opis problemu / zlecenia:</label>
+                    <textarea value={project_description} onChange={e => setProjectDescription(e.target.value)} required />
+                </div>
+                <button type="submit">Wyślij zapytanie</button>
+            </form>
             {requestMessage && <p>{requestMessage}</p>}
         </div>
       ) : (
