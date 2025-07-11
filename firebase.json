@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "pv-service-backend",
+          "region": "europe-central2"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
