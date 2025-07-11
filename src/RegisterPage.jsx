@@ -174,4 +174,4 @@ function RegisterPage() {
   );
 }
 
-export default RegisterPage;
+export default RegisterPage; 
