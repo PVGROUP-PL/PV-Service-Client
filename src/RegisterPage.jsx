@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import API_URL from './apiConfig.js'; // Używamy centralnej konfiguracji
+import API_URL from './apiConfig.js';
 
 function RegisterPage() {
   const navigate = useNavigate();
   
-  // ZMIANA: Domyślny typ użytkownika to 'client'
   const [userType, setUserType] = useState('client'); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +21,8 @@ function RegisterPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const [servicedBrands, setServicedBrands] = useState([]);
 
   const countries = [
       { code: 'PL', name: 'Polska' },
@@ -29,6 +30,25 @@ function RegisterPage() {
       { code: 'CZ', name: 'Czechy' },
       { code: 'SK', name: 'Słowacja' },
   ];
+
+  const inverterBrands = [
+    'Growatt', 'Afore', 'Fronius', 'SMA', 'Sofar Solar', 'FoxESS', 
+    'ThinkPower', 'Solplanet', 'Huawei', 'Goodwe', 'Solis', 'SolarEdge', 
+    'Enphase', 'Kostal', 'Sungrow', 'Victron Energy'
+  ];
+
+  const handleBrandChange = (event) => {
+    const { name, checked } = event.target;
+    let updatedBrands = [...servicedBrands];
+
+    if (checked) {
+      updatedBrands.push(name);
+    } else {
+      updatedBrands = updatedBrands.filter(brand => brand !== name);
+    }
+    
+    setServicedBrands(updatedBrands);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +68,8 @@ function RegisterPage() {
         first_name: firstName, last_name: lastName, phone_number: phoneNumber,
         company_name: isCompany || userType === 'installer' ? companyName : null,
         nip: isCompany || userType === 'installer' ? nip : null,
-        country_code: countryCode
+        country_code: countryCode,
+        serviced_inverter_brands: userType === 'installer' ? servicedBrands : []
     };
 
     try {
@@ -74,7 +95,6 @@ function RegisterPage() {
       
       <div style={{ marginBottom: '20px' }}>
         <h3>Wybierz typ konta:</h3>
-        {/* ZMIANA: Etykiety i wartości dla klienta/instalatora */}
         <label style={{ marginRight: '20px' }}>
             <input type="radio" value="client" checked={userType === 'client'} onChange={(e) => setUserType(e.target.value)} /> Jestem Klientem
         </label>
@@ -100,7 +120,6 @@ function RegisterPage() {
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Potwierdź hasło" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
         </fieldset>
 
-        {/* Formularz firmy dla klienta (opcjonalny) */}
         {userType === 'client' && (
             <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
                 <legend>Dane Firmy (Opcjonalne)</legend>
@@ -114,14 +133,31 @@ function RegisterPage() {
             </fieldset>
         )}
 
-        {/* Formularz firmy dla instalatora (wymagany) */}
         {userType === 'installer' && (
-             <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
-                <legend>Dane Firmy (Instalatora)</legend>
-                <p>Jako instalator musisz podać dane swojej działalności.</p>
-                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nazwa firmy / działalności" required style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
-                <input value={nip} onChange={(e) => setNip(e.target.value)} placeholder="NIP" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
-            </fieldset>
+             <>
+                <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                    <legend>Dane Firmy (Instalatora)</legend>
+                    <p>Jako instalator musisz podać dane swojej działalności.</p>
+                    <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nazwa firmy / działalności" required style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
+                    <input value={nip} onChange={(e) => setNip(e.target.value)} placeholder="NIP" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
+                </fieldset>
+
+                <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                    <legend>Specjalizacje (Marki falowników)</legend>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+                        {inverterBrands.sort().map(brand => (
+                        <label key={brand} style={{display: 'block'}}>
+                            <input 
+                            type="checkbox"
+                            name={brand}
+                            checked={servicedBrands.includes(brand)}
+                            onChange={handleBrandChange}
+                            /> {brand}
+                        </label>
+                        ))}
+                    </div>
+                </fieldset>
+             </>
         )}
         
         <div style={{ marginTop: '10px' }}><label><input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} /> Akceptuję regulamin serwisu.</label></div>
