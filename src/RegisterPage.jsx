@@ -23,11 +23,8 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   
   const [servicedBrands, setServicedBrands] = useState([]);
-  
-  // <-- 1. DODAJEMY NOWY STAN DLA KODU POCZTOWEGO I PROMIENIA
   const [basePostalCode, setBasePostalCode] = useState('');
   const [serviceRadius, setServiceRadius] = useState('');
-
 
   const countries = [
       { code: 'PL', name: 'Polska' },
@@ -45,13 +42,11 @@ function RegisterPage() {
   const handleBrandChange = (event) => {
     const { name, checked } = event.target;
     let updatedBrands = [...servicedBrands];
-
     if (checked) {
       updatedBrands.push(name);
     } else {
       updatedBrands = updatedBrands.filter(brand => brand !== name);
     }
-    
     setServicedBrands(updatedBrands);
   };
 
@@ -75,7 +70,6 @@ function RegisterPage() {
         nip: isCompany || userType === 'installer' ? nip : null,
         country_code: countryCode,
         serviced_inverter_brands: userType === 'installer' ? servicedBrands : [],
-        // <-- 2. DODAJEMY NOWE DANE DO WYSYŁKI
         base_postal_code: userType === 'installer' ? basePostalCode : null,
         service_radius_km: userType === 'installer' ? serviceRadius : null,
     };
@@ -113,11 +107,32 @@ function RegisterPage() {
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
-            {/* ...pola podstawowe bez zmian... */}
+            <legend>Dane Podstawowe</legend>
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Imię" required style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nazwisko" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Adres e-mail" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
+            <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="Numer telefonu" style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
+            <div style={{marginTop: '10px'}}>
+                <label>Kraj rezydencji podatkowej:</label>
+                <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}>
+                    {countries.map(country => (<option key={country.code} value={country.code}>{country.name}</option>))}
+                </select>
+            </div>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Hasło" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Potwierdź hasło" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
         </fieldset>
 
         {userType === 'client' && (
-            // ...sekcja klienta bez zmian...
+            <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                <legend>Dane Firmy (Opcjonalne)</legend>
+                <label><input type="checkbox" checked={isCompany} onChange={(e) => setIsCompany(e.target.checked)} /> Rejestruję się jako firma</label>
+                {isCompany && (
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px'}}>
+                        <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nazwa firmy" style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
+                        <input value={nip} onChange={(e) => setNip(e.target.value)} placeholder="NIP" style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
+                    </div>
+                )}
+            </fieldset>
         )}
 
         {userType === 'installer' && (
@@ -127,11 +142,8 @@ function RegisterPage() {
                     <p>Jako instalator musisz podać dane swojej działalności.</p>
                     <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nazwa firmy / działalności" required style={{width: '100%', padding: '8px', boxSizing: 'border-box'}}/>
                     <input value={nip} onChange={(e) => setNip(e.target.value)} placeholder="NIP" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
-                    
-                    {/* <-- 3. DODAJEMY NOWE POLA DO FORMULARZA --> */}
                     <input value={basePostalCode} onChange={(e) => setBasePostalCode(e.target.value)} placeholder="Kod pocztowy siedziby (np. 00-001)" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
                     <input type="number" value={serviceRadius} onChange={(e) => setServiceRadius(e.target.value)} placeholder="Zasięg usług w km (np. 100)" required style={{width: '100%', padding: '8px', boxSizing: 'border-box', marginTop: '10px'}}/>
-                
                 </fieldset>
 
                 <fieldset style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
