@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from './AuthContext.jsx'; 
-import API_URL from './apiConfig.js'; // Używamy centralnej konfiguracji
+import API_URL from './apiConfig.js';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,19 +17,31 @@ function LoginPage() {
 
   const handleLogin = async (event) => {
     event.preventDefault();
+    console.log('Krok 1: Funkcja handleLogin została uruchomiona.');
+
     setLoading(true);
     setMessage('');
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const loginPayload = { email, password };
+      console.log('Krok 2: Przygotowano dane do wysyłki:', loginPayload);
+      
+      const url = `${API_URL}/api/auth/login`;
+      console.log('Krok 3: Próba wysłania zapytania na URL:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(loginPayload),
       });
+      
+      console.log('Krok 4: Otrzymano odpowiedź od serwera.', response);
 
       const data = await response.json();
+      console.log('Krok 5: Sparsowano dane JSON.', data);
 
       if (response.ok) {
+        console.log('Krok 6: Odpowiedź jest OK. Logowanie...');
         login({
             userId: data.userId,
             email: data.email,
@@ -38,12 +50,16 @@ function LoginPage() {
         
         navigate(from, { replace: true });
       } else {
+        console.error('Krok 6b: Odpowiedź z błędem.', data);
         setLoading(false);
         setMessage(data.message || 'Wystąpił nieznany błąd.');
       }
     } catch (error) {
+      console.error('Krok X: Wystąpił krytyczny błąd w bloku CATCH!', error);
       setLoading(false);
-      setMessage('Błąd sieci. Nie można połączyć się z serwerem.');
+      setMessage('Błąd sieci lub błąd parsowania JSON.');
+    } finally {
+      console.log('Krok 7: Wykonano blok finally.');
     }
   };
 
