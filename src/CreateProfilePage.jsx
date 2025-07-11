@@ -1,13 +1,13 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext.jsx';
-import API_URL from './apiConfig.js'; // Poprawiony import
+import API_URL from './apiConfig.js';
 
 const INVERTER_BRANDS = ["Growatt", "Afore", "Solis", "Sofar Solar", "FoxESS", "Solplanet", "Fronius", "SMA", "Goodwe", "SolarEdge", "Enphase", "Kostal", "Sungrow", "Victron Energy", "Inne"];
 const SERVICE_TYPES = ["Serwis i diagnostyka", "Montaż nowych instalacji", "Przeglądy okresowe", "Modernizacja instalacji"];
 
 function CreateProfilePage() {
-  const { token } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [serviceName, setServiceName] = useState('');
@@ -23,6 +23,15 @@ function CreateProfilePage() {
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setServiceName(user.company_name || '');
+      setPostalCode(user.base_postal_code || '');
+      setRadius(user.service_radius_km || '');
+      // Możesz dodać więcej pól, jeśli są dostępne w obiekcie `user`
+    }
+  }, [user]);
 
   const handleCheckboxChange = (e, state, setState) => {
     const { value, checked } = e.target;
@@ -47,10 +56,10 @@ function CreateProfilePage() {
     formData.append('website_url', website);
     formData.append('certifications', certifications);
     
-    // Konwertujemy tablice do formatu, który backend zrozumie (np. JSON string)
-    // Backend będzie musiał to sparsować.
-    formData.append('serviced_inverter_brands', JSON.stringify(servicedBrands));
-    formData.append('service_types', JSON.stringify(serviceTypes));
+    // W backendzie oczekujemy tablicy, więc nie musimy jej zamieniać na JSON
+    // Wystarczy dodawać każdy element osobno, jeśli backend jest na to gotowy
+    servicedBrands.forEach(brand => formData.append('serviced_inverter_brands[]', brand));
+    serviceTypes.forEach(type => formData.append('service_types[]', type));
 
     if (photos) {
       for (let i = 0; i < photos.length; i++) {
@@ -86,7 +95,7 @@ function CreateProfilePage() {
     form: { display: 'flex', flexDirection: 'column', gap: '15px' },
     input: { width: '100%', padding: '8px', boxSizing: 'border-box' },
     fieldset: { border: '1px solid #ccc', padding: '15px', borderRadius: '5px' },
-    checkboxGroup: { display: 'flex', flexWrap: 'wrap', gap: '10px' },
+    checkboxGroup: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' },
   };
 
   return (
