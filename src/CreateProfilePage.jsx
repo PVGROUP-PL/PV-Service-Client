@@ -1,208 +1,185 @@
-// controllers/installerProfileController.js
-const pool = require('../db');
-const axios = require('axios');
-const { Storage } = require('@google-cloud/storage');
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { AuthContext } from './AuthContext.jsx';
+import API_URL from './apiConfig.js';
 
-// --- KONFIGURACJA GOOGLE CLOUD STORAGE ---
-const storage = new Storage();
-const bucketName = process.env.GCS_BUCKET_NAME;
-const bucket = storage.bucket(bucketName);
+const INVERTER_BRANDS = ["Growatt", "Afore", "Solis", "Sofar Solar", "FoxESS", "Solplanet", "Fronius", "SMA", "Goodwe", "SolarEdge", "Enphase", "Kostal", "Sungrow", "Victron Energy", "Inne"];
+const SERVICE_TYPES = ["Serwis i diagnostyka", "Montaż nowych instalacji", "Przeglądy okresowe", "Modernizacja instalacji"];
 
+function CreateProfilePage() {
+  const { profileId } = useParams();
+  const isEditMode = Boolean(profileId);
 
-// --- FUNKCJE POMOCNICZE ---
+  const { user, token } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-/**
- * Wysyła plik do Google Cloud Storage.
- * @param {object} file - Obiekt pliku z req.files.
- * @returns {Promise<string>} Publiczny URL do wgranego pliku.
- */
-const uploadFileToGCS = (file) => {
-  return new Promise((resolve, reject) => {
-    const { originalname, buffer } = file;
-    const blob = bucket.file(Date.now() + "_" + originalname.replace(/ /g, "_"));
-    
-    const blobStream = blob.createWriteStream({
-      resumable: false,
-    });
+  const [serviceName, setServiceName] = useState('');
+  const [description, setDescription] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [radius, setRadius] = useState('');
+  const [experience, setExperience] = useState('');
+  const [website, setWebsite] = useState('');
+  const [certifications, setCertifications] = useState('');
+  const [servicedBrands, setServicedBrands] = useState([]);
+  const [serviceTypes, setServiceTypes] = useState([]);
+  const [photos, setPhotos] = useState(null);
 
-    blobStream.on('finish', () => {
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-      resolve(publicUrl);
-    })
-    .on('error', (err) => {
-      reject(`Nie udało się wysłać obrazka: ${err}`);
-    })
-    .end(buffer);
-  });
-};
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-/**
- * Konwertuje kod pocztowy na współrzędne geograficzne.
- * @param {string} postalCode - Kod pocztowy do geokodowania.
- * @returns {Promise<{lat: number, lon: number}>} Obiekt ze współrzędnymi.
- */
-async function geocode(postalCode) {
-  const apiKey = process.env.GEOCODING_API_KEY;
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(postalCode)}&components=country:PL&key=${apiKey}`;
-  try {
-    const response = await axios.get(url);
-    if (response.data.status === 'OK' && response.data.results.length > 0) {
-      const location = response.data.results[0].geometry.location;
-      return { lat: location.lat, lon: location.lng };
-    } else {
-      throw new Error(`Nie udało się znaleźć współrzędnych dla kodu pocztowego: ${postalCode}.`);
+  useEffect(() => {
+    const loadProfileData = async () => {
+      setLoading(true);
+      if (isEditMode) {
+        try {
+          const response = await fetch(`${API_URL}/api/profiles/${profileId}`);
+          if (!response.ok) throw new Error("Nie udało się pobrać danych profilu do edycji.");
+          const data = await response.json();
+          setServiceName(data.service_name || '');
+          setDescription(data.service_description || '');
+          setPostalCode(data.base_postal_code || '');
+          setRadius(data.service_radius_km || '');
+          setExperience(data.experience_years || '');
+          setWebsite(data.website_url || '');
+          setCertifications(data.certifications || '');
+          setServicedBrands(data.serviced_inverter_brands || []);
+          setServiceTypes(data.service_types || []);
+        } catch (error) {
+          setMessage(error.message);
+        }
+      } else if (user) {
+        setServiceName(user.company_name || '');
+        setPostalCode(user.base_postal_code || '');
+        setRadius(user.service_radius_km || '');
+      }
+      setLoading(false);
+    };
+
+    if (token) {
+        loadProfileData();
     }
-  } catch (error) {
-    console.error('Błąd Geocoding API:', error.message);
-    throw error; 
-  }
+  }, [profileId, isEditMode, user, token]);
+
+  const handleCheckboxChange = (e, state, setState) => {
+    const { value, checked } = e.target;
+    if (checked) {
+      setState([...state, value]);
+    } else {
+      setState(state.filter((item) => item !== value));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    const formData = new FormData();
+    formData.append('service_name', serviceName);
+    formData.append('service_description', description);
+    formData.append('base_postal_code', postalCode);
+    formData.append('service_radius_km', radius);
+    formData.append('experience_years', experience);
+    formData.append('website_url', website);
+    formData.append('certifications', certifications);
+    
+    formData.append('serviced_inverter_brands', JSON.stringify(servicedBrands));
+    formData.append('service_types', JSON.stringify(serviceTypes));
+
+    if (photos) {
+      for (let i = 0; i < photos.length; i++) {
+        formData.append('reference_photos', photos[i]);
+      }
+    }
+    
+    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode ? `${API_URL}/api/profiles/${profileId}` : `${API_URL}/api/profiles`;
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Wystąpił błąd.');
+      }
+
+      setMessage(isEditMode ? 'Profil zaktualizowany!' : 'Profil utworzony!');
+      setTimeout(() => navigate('/dashboard'), 2000);
+
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const styles = {
+    form: { display: 'flex', flexDirection: 'column', gap: '15px' },
+    input: { width: '100%', padding: '8px', boxSizing: 'border-box' },
+    fieldset: { border: '1px solid #ccc', padding: '15px', borderRadius: '5px' },
+    checkboxGroup: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' },
+  };
+
+  if (loading && isEditMode) return <p>Wczytywanie danych do edycji...</p>;
+
+  return (
+    <div style={{ maxWidth: '700px', margin: '20px auto', padding: '20px' }}>
+      <h1>{isEditMode ? 'Edytuj Swój Profil Instalatora' : 'Utwórz Swój Profil Instalatora'}</h1>
+      <p>Uzupełnij poniższe informacje, aby klienci mogli Cię znaleźć.</p>
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <fieldset style={styles.fieldset}>
+          <legend>Podstawowe informacje</legend>
+          <input value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="Nazwa firmy / Imię i nazwisko" required style={styles.input} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Krótki opis Twojej działalności, doświadczenia..." required style={{...styles.input, minHeight: '100px', marginTop: '10px'}} />
+          <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Adres strony internetowej (opcjonalnie)" style={{...styles.input, marginTop: '10px'}} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset}>
+          <legend>Obszar działania</legend>
+          <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="Główny kod pocztowy (np. 00-001)" required style={styles.input} />
+          <input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} placeholder="Promień działania w km (np. 100)" required style={{...styles.input, marginTop: '10px'}} />
+        </fieldset>
+
+        <fieldset style={styles.fieldset}>
+          <legend>Kompetencje i Doświadczenie</legend>
+          <input type="number" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="Lata doświadczenia w branży" required style={styles.input} />
+          <textarea value={certifications} onChange={(e) => setCertifications(e.target.value)} placeholder="Posiadane certyfikaty i uprawnienia (opcjonalnie)" style={{...styles.input, minHeight: '80px', marginTop: '10px'}} />
+          
+          <p style={{marginTop: '15px', marginBottom: '5px'}}>Obsługiwani producenci falowników:</p>
+          <div style={styles.checkboxGroup}>
+            {INVERTER_BRANDS.map(brand => (
+              <label key={brand}><input type="checkbox" value={brand} checked={servicedBrands.includes(brand)} onChange={(e) => handleCheckboxChange(e, servicedBrands, setServicedBrands)} /> {brand}</label>
+            ))}
+          </div>
+
+          <p style={{marginTop: '15px', marginBottom: '5px'}}>Rodzaje świadczonych usług:</p>
+           <div style={styles.checkboxGroup}>
+            {SERVICE_TYPES.map(type => (
+              <label key={type}><input type="checkbox" value={type} checked={serviceTypes.includes(type)} onChange={(e) => handleCheckboxChange(e, serviceTypes, setServiceTypes)} /> {type}</label>
+            ))}
+          </div>
+        </fieldset>
+        
+        <fieldset style={styles.fieldset}>
+            <legend>Galeria Zdjęć (max 10)</legend>
+            <p>Uwaga: ponowne dodanie zdjęć zastąpi istniejące.</p>
+            <input type="file" multiple accept="image/*" onChange={(e) => setPhotos(e.target.files)} style={styles.input} />
+        </fieldset>
+
+        {message && <p style={{ color: message.startsWith('Profil') ? 'green' : 'red', textAlign: 'center' }}>{message}</p>}
+
+        <button type="submit" disabled={loading} style={{ padding: '15px', fontSize: '16px', fontWeight: 'bold' }}>
+          {loading ? 'Zapisywanie...' : (isEditMode ? 'Zapisz zmiany' : 'Utwórz profil')}
+        </button>
+      </form>
+    </div>
+  );
 }
 
-// --- KONTROLERY DLA PROFILI INSTALATORÓW ---
-
-// Tworzenie nowego profilu instalatora
-exports.createProfile = async (req, res) => {
-    let { 
-        service_name, service_description, specializations, 
-        base_postal_code, service_radius_km, serviced_inverter_brands,
-        service_types, experience_years, certifications, website_url 
-    } = req.body;
-    
-    const installerId = req.user.userId;
-
-    try {
-        let photoUrls = [];
-        if (req.files && req.files.length > 0) {
-          const uploadPromises = req.files.map(uploadFileToGCS);
-          photoUrls = await Promise.all(uploadPromises);
-        }
-
-        if (serviced_inverter_brands && typeof serviced_inverter_brands === 'string') serviced_inverter_brands = JSON.parse(serviced_inverter_brands);
-        if (service_types && typeof service_types === 'string') service_types = JSON.parse(service_types);
-        if (specializations && typeof specializations === 'string') specializations = JSON.parse(specializations);
-
-        const { lat, lon } = await geocode(base_postal_code); 
-        
-        const newProfile = await pool.query(
-            `INSERT INTO installer_profiles (
-                installer_id, service_name, service_description, specializations, 
-                base_postal_code, service_radius_km, base_latitude, base_longitude,
-                website_url, serviced_inverter_brands, service_types, 
-                experience_years, certifications, reference_photo_urls
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
-            [
-                installerId, service_name, service_description, specializations, 
-                base_postal_code, service_radius_km, lat, lon,
-                website_url, serviced_inverter_brands, service_types, 
-                experience_years, certifications, photoUrls
-            ]
-        );
-        res.status(201).json(newProfile.rows[0]);
-    } catch (error) {
-        console.error('Błąd dodawania profilu instalatora:', error.message);
-        res.status(500).json({ message: 'Błąd serwera lub nieprawidłowy kod pocztowy.' });
-    }
-};
-
-// Pobieranie profilu zalogowanego instalatora
-exports.getMyProfile = async (req, res) => {
-    try {
-        const profile = await pool.query('SELECT * FROM installer_profiles WHERE installer_id = $1', [req.user.userId]);
-        if (profile.rows.length > 0) {
-            res.json(profile.rows[0]);
-        } else {
-            res.status(404).json({ message: 'Nie znaleziono profilu dla tego instalatora.' });
-        }
-    } catch (error) {
-        console.error("Błąd w /api/profiles/my-profile:", error);
-        res.status(500).json({ message: 'Błąd serwera.' });
-    }
-};
-
-// Pobieranie wszystkich profili instalatorów
-exports.getAllProfiles = async (req, res) => {
-    try {
-        const profiles = await pool.query('SELECT * FROM installer_profiles');
-        res.json(profiles.rows);
-    } catch (error) {
-        console.error('Błąd podczas pobierania wszystkich profili:', error);
-        res.status(500).json({ message: 'Błąd serwera.' });
-    }
-};
-
-// Pobieranie jednego, konkretnego profilu instalatora po jego ID
-exports.getProfileById = async (req, res) => {
-  try {
-    const profileId = parseInt(req.params.profileId, 10);
-    if (isNaN(profileId)) {
-      return res.status(400).json({ message: 'Nieprawidłowe ID profilu.' });
-    }
-    const profile = await pool.query('SELECT * FROM installer_profiles WHERE profile_id = $1', [profileId]);
-    if (profile.rows.length > 0) {
-      res.json(profile.rows[0]);
-    } else {
-      res.status(404).json({ message: 'Nie znaleziono profilu o podanym ID.' });
-    }
-  } catch (error) {
-    console.error("Błąd podczas pobierania pojedynczego profilu:", error);
-    res.status(500).json({ message: 'Błąd serwera.' });
-  }
-};
-
-// Aktualizacja profilu instalatora
-exports.updateProfile = async (req, res) => {
-    const { profileId: profileIdParam } = req.params;
-    let { 
-        service_name, service_description, specializations, 
-        base_postal_code, service_radius_km, serviced_inverter_brands,
-        service_types, experience_years, certifications, website_url 
-    } = req.body;
-
-    const profileId = parseInt(profileIdParam, 10);
-    if (isNaN(profileId)) {
-        return res.status(400).json({ message: 'Nieprawidłowe ID profilu.' });
-    }
-
-    try {
-        const profileCheck = await pool.query('SELECT installer_id, reference_photo_urls FROM installer_profiles WHERE profile_id = $1', [profileId]);
-        if (profileCheck.rows.length === 0) {
-            return res.status(404).json({ message: 'Profil nie istnieje.' });
-        }
-        if (profileCheck.rows[0].installer_id !== req.user.userId) {
-            return res.status(403).json({ message: 'Nie masz uprawnień do edycji tego profilu.' });
-        }
-        
-        let photoUrls = profileCheck.rows[0].reference_photo_urls;
-        if (req.files && req.files.length > 0) {
-          const uploadPromises = req.files.map(uploadFileToGCS);
-          photoUrls = await Promise.all(uploadPromises);
-        }
-        
-        if (serviced_inverter_brands && typeof serviced_inverter_brands === 'string') serviced_inverter_brands = JSON.parse(serviced_inverter_brands);
-        if (service_types && typeof service_types === 'string') service_types = JSON.parse(service_types);
-        if (specializations && typeof specializations === 'string') specializations = JSON.parse(specializations);
-
-        const { lat, lon } = await geocode(base_postal_code);
-
-        const updatedProfile = await pool.query(
-            `UPDATE installer_profiles SET 
-                service_name = $1, service_description = $2, specializations = $3, 
-                base_postal_code = $4, service_radius_km = $5, base_latitude = $6, 
-                base_longitude = $7, website_url = $8, serviced_inverter_brands = $9, 
-                service_types = $10, experience_years = $11, certifications = $12, reference_photo_urls = $13
-             WHERE profile_id = $14 RETURNING *`,
-            [
-                service_name, service_description, specializations,
-                base_postal_code, service_radius_km, lat, lon, website_url,
-                serviced_inverter_brands, service_types, experience_years,
-                certifications, photoUrls, profileId
-            ]
-        );
-
-        res.json(updatedProfile.rows[0]);
-    } catch (error) {
-        console.error("Błąd podczas aktualizacji profilu:", error);
-        res.status(500).json({ message: 'Błąd serwera lub nieprawidłowy kod pocztowy.' });
-    }
-};
 export default CreateProfilePage;
