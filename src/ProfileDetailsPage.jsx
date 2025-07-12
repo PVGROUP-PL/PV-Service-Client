@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from './AuthContext.jsx'; 
-import API_URL from './apiConfig.js'; // Poprawiony import
+import API_URL, { DIRECT_BACKEND_URL } from './apiConfig.js'; // Poprawiony import
 
+// Komponent do wyświetlania gwiazdek
 const StarRatingDisplay = ({ rating }) => {
     const totalStars = 5;
     let stars = [];
@@ -40,7 +41,6 @@ function ProfileDetailsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Używamy poprawnego API_URL
         const [profileRes, reviewsRes] = await Promise.all([
           fetch(`${API_URL}/api/profiles/${profileId}`),
           fetch(`${API_URL}/api/reviews/profile/${profileId}`)
@@ -147,7 +147,7 @@ function ProfileDetailsPage() {
         {profile.reference_photo_urls && profile.reference_photo_urls.length > 0 ? (
           <div style={styles.gallery}>
             {profile.reference_photo_urls.map((url, index) => (
-              <img key={index} src={`${API_URL}${url}`} alt={`Realizacja ${index + 1}`} style={styles.galleryImage} />
+              <img key={index} src={`${DIRECT_BACKEND_URL}${url}`} alt={`Realizacja ${index + 1}`} style={styles.galleryImage} />
             ))}
           </div>
         ) : (
