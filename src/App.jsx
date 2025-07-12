@@ -10,10 +10,8 @@ import DashboardPage from './DashboardPage.jsx';
 import ChatPage from './ChatPage.jsx';
 import Navbar from './Navbar.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
-
-// NOWOŚĆ: Zaktualizowane importy dla nowych komponentów
-import CreateProfilePage from './CreateProfilePage.jsx'; // Dawniej AddTruckPage
-import ProfileDetailsPage from './ProfileDetailsPage.jsx'; // Dawniej TruckDetailsPage
+import CreateProfilePage from './CreateProfilePage.jsx';
+import ProfileDetailsPage from './ProfileDetailsPage.jsx';
 
 function App() {
   return (
@@ -26,18 +24,15 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            
-            {/* NOWOŚĆ: Zaktualizowana trasa dla szczegółów profilu */}
             <Route path="/profile/:profileId" element={<ProfileDetailsPage />} />
 
-            {/* Trasy chronione (dla zalogowanych użytkowników) */}
+            {/* Trasy chronione */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/chat/:conversationId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-
-            {/* NOWOŚĆ: Zaktualizowana trasa dla tworzenia profilu (tylko dla instalatorów) */}
             <Route path="/create-profile" element={<ProtectedRoute><CreateProfilePage /></ProtectedRoute>} />
             
-            {/* Dodać można również trasę do edycji profilu, np. /edit-profile */}
+            {/* NOWA TRASA DO EDYCJI PROFILU */}
+            <Route path="/edit-profile/:profileId" element={<ProtectedRoute><CreateProfilePage /></ProtectedRoute>} />
 
           </Routes>
         </main>
