@@ -205,3 +205,4 @@ exports.updateProfile = async (req, res) => {
         res.status(500).json({ message: 'Błąd serwera lub nieprawidłowy kod pocztowy.' });
     }
 };
+export default CreateProfilePage;
