@@ -36,53 +36,43 @@ function DashboardPage() {
   
   const fetchData = async () => {
     if (!token) return;
-    console.log("Krok 2: Uruchamiam fetchData...");
     setLoading(true);
     setError('');
     try {
       const authHeaders = { 'Authorization': `Bearer ${token}` };
       
-      console.log("Krok 3: Pobieram zlecenia (/api/requests/my-requests)");
       const requestsRes = await fetch(`${API_URL}/api/requests/my-requests`, { headers: authHeaders });
-      console.log("Krok 4: Odpowiedź dla zleceń:", requestsRes.status, requestsRes.statusText);
-      if (!requestsRes.ok) throw new Error('Nie udało się pobrać zleceń.');
+      if (!requestsRes.ok) {
+        throw new Error('Nie udało się pobrać zleceń.');
+      }
       const requestsData = await requestsRes.json();
       setRequests(requestsData);
 
       if (user?.user_type === 'installer') {
-        console.log("Krok 5: Jestem instalatorem, pobieram profil (/api/profiles/my-profile)");
         const profileRes = await fetch(`${API_URL}/api/profiles/my-profile`, { headers: authHeaders });
-        console.log("Krok 6: Odpowiedź dla profilu:", profileRes.status, profileRes.statusText);
-        
-        if (profileRes.status === 404) {
-          console.log("Krok 7a: Profil nie istnieje (404). Ustawiam profil na null.");
-          setProfile(null);
-        } else if (profileRes.ok) {
+        if (profileRes.status !== 404 && profileRes.ok) {
           const profileData = await profileRes.json();
-          console.log("Krok 7b: Profil istnieje. Ustawiam dane profilu.");
           setProfile(profileData);
         } else {
-           throw new Error('Błąd podczas pobierania profilu instalatora.');
+          setProfile(null);
         }
       }
     } catch (err) {
-      console.error("Krok X: Błąd w fetchData:", err);
       setError(err.message);
+      console.error("Błąd pobierania danych w panelu:", err);
     } finally {
-      console.log("Krok 8: Koniec fetchData, ustawiam loading na false.");
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log("Krok 1: Uruchamiam useEffect. authLoading:", authLoading);
     if (authLoading) return;
     if (!user || !token) {
       navigate('/login');
       return;
     }
     fetchData();
-  }, [authLoading, user, token]);
+  }, [authLoading, user, token, navigate]);
 
   const handleUpdateStatus = async (requestId, newStatus) => {
     setError('');
@@ -150,7 +140,6 @@ function DashboardPage() {
     }
   };
 
-  console.log("Stan przed renderowaniem:", { authLoading, loading, error, user, profile, requests });
   if (authLoading || loading) return <p style={{textAlign: 'center', marginTop: '50px'}}>Ładowanie panelu...</p>;
   if (!user) return null;
 
@@ -210,14 +199,31 @@ function DashboardPage() {
             <ul style={{ listStyle: 'none', padding: 0 }}>
               {requests.map(req => (
                 <li key={req.request_id} style={{ border: '1px solid #ccc', padding: '15px', marginBottom: '10px', borderRadius: '5px' }}>
+                  
                   {user.user_type === 'installer' ? (
-                    <p><strong>Zleceniodawca:</strong> {req.client_email}</p>
+                    <div>
+                      <p><strong>Zleceniodawca:</strong> {req.client_first_name} {req.client_last_name} ({req.client_email})</p>
+                      <p><strong>Telefon klienta:</strong> {req.client_phone}</p>
+                    </div>
                   ) : (
                     <p><strong>Nazwa usługi / firmy:</strong> {req.service_name}</p>
                   )}
-                  <p><strong>Preferowana data:</strong> {new Date(req.preferred_date || req.event_date).toLocaleDateString()}</p>
-                  <p><strong>Opis projektu:</strong> {req.project_description}</p>
-                  <p><strong>Status:</strong> {req.status}</p>
+                  <hr style={{margin: '10px 0'}} />
+          
+                  <p><strong>Preferowana data:</strong> {new Date(req.preferred_date).toLocaleDateString()}</p>
+                  <p><strong>Opis problemu:</strong> {req.project_description}</p>
+                  <p><strong>Pilność:</strong> {req.urgency}</p>
+                  
+                  <div style={{background: '#f9f9f9', padding: '10px', marginTop: '10px', borderRadius: '5px'}}>
+                      <h4 style={{marginTop: 0}}>Szczegóły instalacji klienta</h4>
+                      <p><strong>Typ instalacji:</strong> {req.installation_type}</p>
+                      <p><strong>Typ systemu:</strong> {req.system_type}</p>
+                      <p><strong>Falownik:</strong> {req.inverter_brand_model}</p>
+                      <p><strong>Wiek instalacji:</strong> {req.installation_age_years} lat</p>
+                      {req.error_codes && <p><strong>Kody błędów:</strong> {req.error_codes}</p>}
+                  </div>
+                  
+                  <p style={{marginTop: '15px'}}><strong>Status zlecenia:</strong> {req.status}</p>
                   
                   <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                     {user.user_type === 'installer' && req.status === 'pending_installer_approval' && (
