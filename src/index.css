@@ -68,3 +68,54 @@ button:disabled {
 main {
     padding: 2rem 1rem;
 }
+
+/* src/index.css */
+
+/* === SEKCJA RESPONSIVE === */
+
+/* Dla tabletów i mniejszych urządzeń (poniżej 992px) */
+@media (max-width: 992px) {
+  main {
+    padding: 1.5rem;
+  }
+}
+
+/* Dla telefonów komórkowych (poniżej 768px) */
+@media (max-width: 768px) {
+  /* Zmniejszamy paddingi, aby zaoszczędzić miejsce */
+  main {
+    padding: 1rem;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  /* --- Style dla Nawigacji --- */
+  nav[style] { /* Używamy selektora atrybutu, by nadpisać style inline */
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  /* --- Style dla formularza wyszukiwania na stronie głównej --- */
+  form[style] { /* Używamy selektora atrybutu, by nadpisać style inline */
+    flex-direction: column;
+    align-items: stretch; /* Elementy zajmą pełną szerokość */
+  }
+
+  /* --- Style dla formularza rejestracji / logowania --- */
+  div[style*="maxWidth: 700px"], div[style*="maxWidth: 450px"] {
+    margin: 10px;
+    padding: 15px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* --- Style dla siatki kart --- */
+  /* Twoja siatka kart jest już responsywna dzięki `auto-fill` i `minmax`! */
+  /* Ale możemy zmniejszyć minimalną szerokość karty, aby lepiej wyglądała na wąskich ekranach */
+  div[style*="gridTemplateColumns"] {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
